@@ -108,6 +108,8 @@ def add_item():
 		_description = request.form['description']
 		_location = request.form['location']
 		_createdat = request.form['created_at']
+		# _picname = request.form['picname']
+		_files=request.files.getlist('pic_name[]')
 		# validate the received values
 		if _itemname and _description and _location and _createdat and request.method == 'POST':
 			
@@ -117,8 +119,14 @@ def add_item():
 			conn = mysql.connect()
 			cursor = conn.cursor()
 			cursor.execute(sql, data)
-			
+			_last_id=cursor.lastrowid
+
+			sql = "INSERT INTO item_pic(item_id, pic_name) VALUES(%s, %s)"
+			for i in _files:
+				data = (_last_id,i.filename)
+				cursor.execute(sql, data)
 			conn.commit()
+
 			resp = jsonify('Item added successfully!')
 			resp.status_code = 200
 			return resp
@@ -131,8 +139,6 @@ def add_item():
 	finally:
 		cursor.close() 
 		conn.close()
-
-
 
 		
 if __name__ == "__main__":
