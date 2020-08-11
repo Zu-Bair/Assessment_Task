@@ -88,9 +88,7 @@ def add_user():
 			resp.status_code = 200
 			return resp
 		else:
-			resp = jsonify('Not found')
-			resp.status_code = 404
-			return resp
+			return not_found()
 	except Exception as e:
 		print(e)
 	finally:
@@ -131,15 +129,84 @@ def add_item():
 			resp.status_code = 200
 			return resp
 		else:
-			resp = jsonify('Not found')
-			resp.status_code = 404
-			return resp
+			return not_found()
 	except Exception as e:
 		print(e)
 	finally:
 		cursor.close() 
 		conn.close()
 
+
+@app.route('/delete/<int:id>',methods=['GET'])
+def delete_item(id):
+	try:
+		conn = mysql.connect()
+		cursor = conn.cursor()
+		cursor.execute("DELETE FROM item WHERE id=%s", (id,))
+		cursor.execute("DELETE FROM item_pic WHERE item_id=%s", (id,))
+
+		conn.commit()
+		resp = jsonify('User deleted successfully!')
+		resp.status_code = 200
+		return resp
+	except Exception as e:
+		print(e)
+	finally:
+		cursor.close() 
+		conn.close()
+
+
+
+@app.route('/update', methods=['POST'])
+def update_item():
+	try:
+		_id = request.form['id']
+		_itemname = request.form['item_name']
+		_description = request.form['description']
+		_location = request.form['location']
+		_createdat = request.form['created_at']
+		_files=request.files.getlist('pic_name[]')
+		
+		# _picname = request.form['picname']
+		#_files=request.files.getlist('pic_name[]')		
+		# validate the received values
+		if _itemname and _description and _location and _createdat and request.method == 'POST':
+			# save edits
+			sql = "UPDATE item SET name=%s, description=%s, location=%s, created_at=%s WHERE id=%s"
+			data = (_itemname, _description, _location, _createdat,_id,)
+			conn = mysql.connect()
+			cursor = conn.cursor()
+			cursor.execute(sql, data)
+			# sql = "DELETE FROM item_pic WHERE item_id=%s", (id,)
+			cursor.execute("DELETE FROM item_pic WHERE item_id=%s", (_id,))
+			sql = "INSERT INTO item_pic(item_id, pic_name) VALUES(%s, %s)"
+			for i in _files:
+				data = (_id,i.filename)
+				cursor.execute(sql, data)
+			conn.commit()
+			resp = jsonify('User updated successfully!')
+			resp.status_code = 200
+			return resp
+		else:
+			return not_found()
+	except Exception as e:
+		print(e)
+	finally:
+		cursor.close() 
+		conn.close()
+
+
+
+@app.errorhandler(404)
+def not_found(error=None):
+    message = {
+        'status': 404,
+        'message': 'Not Found: ' + request.url,
+    }
+    resp = jsonify(message)
+    resp.status_code = 404
+
+    return resp
 		
 if __name__ == "__main__":
     app.run()
