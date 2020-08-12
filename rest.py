@@ -195,6 +195,52 @@ def update_item():
 		cursor.close() 
 		conn.close()
 
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+	name = request.form['name']
+	a = request.form['type'] 
+	obj=''
+	try:
+		conn = mysql.connect()
+		cursor = conn.cursor()
+		# type = 1 for by name search 
+		if (a=='1'):
+			obj=cursor.execute("SELECT * from item  WHERE name LIKE %s ", (name))
+		# type = 2 for by location search 
+		elif (a=='2'):
+			obj=cursor.execute("SELECT * from item  WHERE location LIKE %s ", (name))
+		else:
+			resp = jsonify(' You entered wrong type')
+			return resp
+
+		data=cursor.fetchall()
+		content = []
+		content1 = []
+		final = []
+		if(obj>0):
+			for row in data:
+				content.append(row)
+				cursor.execute("SELECT * from item_pic WHERE  item_id=%s",(row[0]))
+				data1=cursor.fetchall()
+				for row1 in data1:
+					content1.append(row1[2])
+			final = content + content1
+			
+		else:
+			return jsonify(' Not Found')
+		
+
+
+		conn.commit()
+		
+		resp = jsonify(' your search result ', final)
+		resp.status_code = 200
+		return resp
+	except Exception as e:
+		print(e)
+	finally:
+		cursor.close() 
+		conn.close()	
 
 
 @app.errorhandler(404)
